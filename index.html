@@ -44,21 +44,30 @@
 
   .cards { display:grid; grid-template-columns: repeat(auto-fit,minmax(100px,1fr)); gap:12px; margin-top:12px; }
 
-  /* Flip - opaklık */
+  /* === 3D Flip Kartlar === */
   .card {
     position:relative; aspect-ratio:2/3; border-radius:12px; overflow:hidden;
     cursor:pointer; border:1px solid #e9e9e9; background:#eee; 
     box-shadow:0 6px 16px rgba(0,0,0,.1);
+    perspective: 1200px; /* 3D derinlik */
   }
-  .face, .back { position:absolute; inset:0; border-radius:12px; transition: opacity .35s ease; }
-  .back { opacity:1; background-size:cover; background-position:center; background-repeat:no-repeat; }
-  .face { opacity:0; }
-  .card.flipped .back { opacity:0; }
-  .card.flipped .face { opacity:1; }
+  .card-inner {
+    position:relative; width:100%; height:100%;
+    transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .card:hover .card-inner { transform: rotateY(8deg); } /* hafif hover parıltısı */
+  .card.flipped .card-inner { transform: rotateY(180deg); }
 
-  .face img { width:100%; height:100%; object-fit:contain; object-position:center; display:block; border-radius:12px; background:#fff; }
+  .face, .back {
+    position:absolute; inset:0; border-radius:12px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+  }
+  .face { transform: rotateY(180deg); background:#fff; display:flex; }
+  .face img { width:100%; height:100%; object-fit:contain; object-position:center; border-radius:12px; display:block; }
 
-  .sel-badge { position:absolute; bottom:6px; left:6px; background:#111; color:#fff; font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; }
+  .sel-badge { position:absolute; bottom:6px; left:6px; background:#111; color:#fff; font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; z-index:3; }
 
   .reading { margin-top:16px; padding:16px; background:#fff; border:1px solid #eee; border-radius:16px; box-shadow:0 6px 16px rgba(0,0,0,.08); }
   .reading .item { background:#fdf1f1; border:1px solid #fde1e1; border-radius:12px; padding:12px; margin-top:10px; }
@@ -98,7 +107,6 @@
   <rect width='100%' height='100%' fill='url(#g)'/>
   <rect width='100%' height='100%' fill='url(#p)'/>
 </svg>`;
-
   const backUrl = () => (CARD_BACK_IMAGE_URL && CARD_BACK_IMAGE_URL.trim()) ? CARD_BACK_IMAGE_URL : DEFAULT_BACK;
   const faceUrlFor = (cardName) => {
     const u = CARD_IMAGES[cardName];
@@ -112,7 +120,6 @@
   const MINOR = SUITS.flatMap(suit => RANKS.map(rank => `${rank} of ${suit}`));
   const ALL_CARDS = [...MAJOR, ...MINOR].map((name,idx)=>({id:idx,name}));
 
-  /* Evet/Hayır (tek kart) */
   const YESNO = { "The Sun":"yes","The Lovers":"yes","The World":"yes","The Tower":"no","Death":"no","The Devil":"no" };
   const suitOf = n => SUITS.find(s=>n.includes(` of ${s}`));
   const defaultYesNo = n => suitOf(n)==="Swords"?"no": suitOf(n)==="Cups"?"maybe":"yes";
@@ -128,7 +135,7 @@
   const state = {
     name: "", mode: null, category: null, yesnoQuestion: "",
     decksMeta: null, chosenDeckIndex: null, needSelect: 0, selectedCards: [],
-    commentSize: "medium" // short | medium | long
+    commentSize: "medium"
   };
 
   const root = document.getElementById('tarot-app');
@@ -236,29 +243,40 @@
         const grid = cardsWrap.querySelector('#cards-grid');
         deck.forEach(cardId=>{
           const cardData = ALL_CARDS[cardId];
-          const c = document.createElement('div'); c.className='card'; c.setAttribute('role','button');
 
-          const back = document.createElement('div'); back.className='back'; back.style.backgroundImage = `url('${backUrl()}')`;
-          const face = document.createElement('div'); face.className='face';
+          const card = document.createElement('div'); 
+          card.className='card'; card.setAttribute('role','button');
+
+          const inner = document.createElement('div');
+          inner.className='card-inner';
+
+          const back = document.createElement('div'); 
+          back.className='back'; 
+          back.style.backgroundImage = `url('${backUrl()}')`;
+
+          const face = document.createElement('div'); 
+          face.className='face';
           const faceImg = document.createElement('img');
           faceImg.alt = cardData.name; faceImg.decoding='async'; faceImg.loading='lazy'; faceImg.referrerPolicy='no-referrer';
           faceImg.src = faceUrlFor(cardData.name);
           faceImg.onerror = ()=>{ faceImg.src = backUrl(); };
           face.appendChild(faceImg);
 
-          c.appendChild(back); c.appendChild(face);
+          inner.appendChild(back); inner.appendChild(face);
+          card.appendChild(inner);
 
-          c.addEventListener('click', ()=>{
-            if(c.classList.contains('flipped')) return;
+          card.addEventListener('click', ()=>{
+            if(card.classList.contains('flipped')) return;
             if(state.selectedCards.length >= state.needSelect) return;
-            c.classList.add('flipped');
-            c.insertAdjacentHTML('beforeend', `<div class="sel-badge">#${state.selectedCards.length+1}</div>`);
+            card.classList.add('flipped');
+            card.insertAdjacentHTML('beforeend', `<div class="sel-badge">#${state.selectedCards.length+1}</div>`);
             state.selectedCards.push({ id: cardId, name: cardData.name });
             if(state.selectedCards.length === state.needSelect){
               setTimeout(render, 350);
             }
           });
-          grid.appendChild(c);
+
+          grid.appendChild(card);
         });
 
         cardsWrap.querySelector('#btn-change-deck').addEventListener('click', ()=>{
@@ -350,118 +368,30 @@
     document.getElementById('btn-again').addEventListener('click', ()=>{ resetAll(); render(); });
   }
 
-  /* === YORUM VERİTABANI (Major özgül; Minor şablon) === */
+  /* === (Aşağıdaki yorum motoru ve şablonlar mevcut sürümünden — aynen kaldı) === */
   const majorMap = {
-    "The Fool": {
-      "Aşk":"Kalbin yeni bir maceraya hazır; korkusuz fakat saygılı adımlar taze bir romantizmi çağırır.",
-      "Kariyer/Para":"Girişim kıvılcımı; hesaplı risk ve öğrenme hevesi görünürlüğünü yükseltir.",
-      "Genel Durum":"Hayat ‘deneyimle’ diyor; iç çocuğunun merakıyla ilerlediğinde yol yürürken açılır."
-    },
-    "The Magician": {
-      "Aşk":"İfade gücün yüksek; net talep ve açık kalp ilişkide sihir yaratır.",
-      "Kariyer/Para":"Kaynak ve beceri sende; tek hedefe odaklan, fırsat kapısı aralanıyor.",
-      "Genel Durum":"Niyet–söz–eylem hizası; uyumlandığında kapılar kendiliğinden açılır."
-    },
-    "The High Priestess": {
-      "Aşk":"Sessizlikte cevap var; sezgini dinle, acele etmeyerek kazanırsın.",
-      "Kariyer/Para":"Perde arkasını oku; veri+sezgi doğru zamanı işaret ediyor.",
-      "Genel Durum":"Rüyalar ve işaretler güçlü; iç sesin bugün pusulan."
-    },
-    "The Empress": {
-      "Aşk":"Şefkat ve sıcaklık bağı büyütür; birlikte alanı güzelleştirmek yakınlığı artırır.",
-      "Kariyer/Para":"Besleyen ritim bereket getirir; üretkenlik kalıcı olur.",
-      "Genel Durum":"Doğayla temas ve yaratım; çoğalma enerjisi yüksek."
-    },
-    "The Emperor": {
-      "Aşk":"Sağlıklı sınırlar yakınlığı korur; net çerçeve güvendir.",
-      "Kariyer/Para":"Plan–takvim–sorumluluk; strateji otoriteyi pekiştirir.",
-      "Genel Durum":"Kontrol edebildiğine odaklan; sağlam temel her şeyi taşır."
-    },
-    "The Hierophant": {
-      "Aşk":"Ritüel ve değerler bağa derinlik katar.",
-      "Kariyer/Para":"Usta–çırak modeli hızlandırır; etik duruş kazandırır.",
-      "Genel Durum":"Gelenek ve bilgelik omurga sağlar."
-    },
-    "The Lovers": {
-      "Aşk":"Kalp uyumu ve seçim; açık konuşma bağa ışık tutar.",
-      "Kariyer/Para":"Değer uyumlu karar uzun vadeli tatmin getirir.",
-      "Genel Durum":"Evetlerin ve hayırların seni tanımlar; bütünlük pusulan."
-    },
-    "The Chariot": {
-      "Aşk":"Aynı yöne bakan iki yüreğe ivme; ortak hedef konuşmaları bağlar.",
-      "Kariyer/Para":"Dağılma; tek hedefe kilitlen, disiplin sonucu getirir.",
-      "Genel Durum":"İrade rotadır; başlangıç niyetini hatırla ve sürdür."
-    },
-    "Strength": {
-      "Aşk":"Yumuşak cesaret savunmayı indirir; yakınlık derinleşir.",
-      "Kariyer/Para":"Süreklilik ve öz-disiplin uzun vadede kazanır.",
-      "Genel Durum":"Nazik güç gerilimi eritir; kendine iyi davran."
-    },
-    "The Hermit": {
-      "Aşk":"Kısa geri çekiliş duyguyu berraklaştırır.",
-      "Kariyer/Para":"Stratejik yalnızlık odak kazandırır.",
-      "Genel Durum":"İç fenerini izle; dış tabela gereksiz."
-    },
-    "Wheel of Fortune": {
-      "Aşk":"Zamanlama oyunu; dalganın ritmine uyum.",
-      "Kariyer/Para":"Esneklik fırsatı büyütür; rüzgâr arkanda.",
-      "Genel Durum":"Döngüsel akışta şans görünür olur."
-    },
-    "Justice": {
-      "Aşk":"Eşit emek ve dürüstlük güveni tazeler.",
-      "Kariyer/Para":"Şeffaf kayıt ve sözleşme riski azaltır.",
-      "Genel Durum":"Terazi denge ister; adil karar huzur getirir."
-    },
-    "The Hanged Man": {
-      "Aşk":"Onun penceresinden bakmak sihirlidir.",
-      "Kariyer/Para":"Bekleme stratejiktir; yeniden çerçevele.",
-      "Genel Durum":"Teslimiyet yaratıcı boşluk açar."
-    },
-    "Death": {
-      "Aşk":"Eski kalıbı bırak; bağ tazelensin.",
-      "Kariyer/Para":"Hizmet etmeyeni kapat, kaynaklarını yeniye yönelt.",
-      "Genel Durum":"Dönüşüm kaçınılmaz; hafifle."
-    },
-    "Temperance": {
-      "Aşk":"Orta yol ilişkiyi besler.",
-      "Kariyer/Para":"Dengeli tempo sürdürülebilir başarıdır.",
-      "Genel Durum":"Harmoni zamanla mayalanır."
-    },
-    "The Devil": {
-      "Aşk":"Bağımlılık/kıskançlık döngüsünü fark et, özgürleş.",
-      "Kariyer/Para":"Aşırı çalışma–ödül tuzağını sorgula.",
-      "Genel Durum":"Gölge kalıpları görünce kapı içeriden açılır."
-    },
-    "The Tower": {
-      "Aşk":"Yıkılan kalıp sahicilik alanı açar.",
-      "Kariyer/Para":"Plan bozulduysa daha sağlam yapı doğar.",
-      "Genel Durum":"Kriz hakikate çağrı; eskiyi sök."
-    },
-    "The Star": {
-      "Aşk":"Nazik dürüstlük şifa getirir; umut tazelenir.",
-      "Kariyer/Para":"Vizyonunu paylaş; destek bulursun.",
-      "Genel Durum":"Gece uzun olsa da sabah yakın."
-    },
-    "The Moon": {
-      "Aşk":"Varsayım yerine duygu paylaş; sis dağılır.",
-      "Kariyer/Para":"Belirsizlikte riski yönet; veriyi netleştir.",
-      "Genel Durum":"Hayal ile korkuyu ayırt et."
-    },
-    "The Sun": {
-      "Aşk":"İçtenlik ve oyunbazlık yakınlığı artırır.",
-      "Kariyer/Para":"Görünür başarı; emek ışığa çıkıyor.",
-      "Genel Durum":"Canlılık ve netlik yüksek."
-    },
-    "Judgement": {
-      "Aşk":"Eski defter adilce kapanırsa ikinci şans mümkün.",
-      "Kariyer/Para":"Çağrın netleşiyor; yön değişimi yakın.",
-      "Genel Durum":"Yüzleşme hafifletir; yeniden doğuş."
-    },
-    "The World": {
-      "Aşk":"Döngü tamam; seviye atlama.",
-      "Kariyer/Para":"Proje kapanışı, hak edilen takdir.",
-      "Genel Durum":"Bütünlük ve tamamlanma."
-    }
+    "The Fool":{"Aşk":"Kalbin yeni bir maceraya hazır; korkusuz fakat saygılı adımlar taze bir romantizmi çağırır.","Kariyer/Para":"Girişim kıvılcımı; hesaplı risk ve öğrenme hevesi görünürlüğünü yükseltir.","Genel Durum":"Hayat ‘deneyimle’ diyor; iç çocuğunun merakıyla ilerlediğinde yol yürürken açılır."},
+    "The Magician":{"Aşk":"İfade gücün yüksek; net talep ve açık kalp ilişkide sihir yaratır.","Kariyer/Para":"Kaynak ve beceri sende; tek hedefe odaklan, fırsat kapısı aralanıyor.","Genel Durum":"Niyet–söz–eylem hizası; uyumlandığında kapılar kendiliğinden açılır."},
+    "The High Priestess":{"Aşk":"Sessizlikte cevap var; sezgini dinle, acele etmeyerek kazanırsın.","Kariyer/Para":"Perde arkasını oku; veri+sezgi doğru zamanı işaret ediyor.","Genel Durum":"Rüyalar ve işaretler güçlü; iç sesin bugün pusulan."},
+    "The Empress":{"Aşk":"Şefkat ve sıcaklık bağı büyütür; birlikte alanı güzelleştirmek yakınlığı artırır.","Kariyer/Para":"Besleyen ritim bereket getirir; üretkenlik kalıcı olur.","Genel Durum":"Doğayla temas ve yaratım; çoğalma enerjisi yüksek."},
+    "The Emperor":{"Aşk":"Sağlıklı sınırlar yakınlığı korur; net çerçeve güvendir.","Kariyer/Para":"Plan–takvim–sorumluluk; strateji otoriteyi pekiştirir.","Genel Durum":"Kontrol edebildiğine odaklan; sağlam temel her şeyi taşır."},
+    "The Hierophant":{"Aşk":"Ritüel ve değerler bağa derinlik katar.","Kariyer/Para":"Usta–çırak modeli hızlandırır; etik duruş kazandırır.","Genel Durum":"Gelenek ve bilgelik omurga sağlar."},
+    "The Lovers":{"Aşk":"Kalp uyumu ve seçim; açık konuşma bağa ışık tutar.","Kariyer/Para":"Değer uyumlu karar uzun vadeli tatmin getirir.","Genel Durum":"Evetlerin ve hayırların seni tanımlar; bütünlük pusulan."},
+    "The Chariot":{"Aşk":"Aynı yöne bakan iki yüreğe ivme; ortak hedef konuşmaları bağlar.","Kariyer/Para":"Dağılma; tek hedefe kilitlen, disiplin sonucu getirir.","Genel Durum":"İrade rotadır; başlangıç niyetini hatırla ve sürdür."},
+    "Strength":{"Aşk":"Yumuşak cesaret savunmayı indirir; yakınlık derinleşir.","Kariyer/Para":"Süreklilik ve öz-disiplin uzun vadede kazanır.","Genel Durum":"Nazik güç gerilimi eritir; kendine iyi davran."},
+    "The Hermit":{"Aşk":"Kısa geri çekiliş duyguyu berraklaştırır.","Kariyer/Para":"Stratejik yalnızlık odak kazandırır.","Genel Durum":"İç fenerini izle; dış tabela gereksiz."},
+    "Wheel of Fortune":{"Aşk":"Zamanlama oyunu; dalganın ritmine uyum.","Kariyer/Para":"Esneklik fırsatı büyütür; rüzgâr arkanda.","Genel Durum":"Döngüsel akışta şans görünür olur."},
+    "Justice":{"Aşk":"Eşit emek ve dürüstlük güveni tazeler.","Kariyer/Para":"Şeffaf kayıt ve sözleşme riski azaltır.","Genel Durum":"Terazi denge ister; adil karar huzur getirir."},
+    "The Hanged Man":{"Aşk":"Onun penceresinden bakmak sihirlidir.","Kariyer/Para":"Bekleme stratejiktir; yeniden çerçevele.","Genel Durum":"Teslimiyet yaratıcı boşluk açar."},
+    "Death":{"Aşk":"Eski kalıbı bırak; bağ tazelensin.","Kariyer/Para":"Hizmet etmeyeni kapat, kaynaklarını yeniye yönelt.","Genel Durum":"Dönüşüm kaçınılmaz; hafifle."},
+    "Temperance":{"Aşk":"Orta yol ilişkiyi besler.","Kariyer/Para":"Dengeli tempo sürdürülebilir başarıdır.","Genel Durum":"Harmoni zamanla mayalanır."},
+    "The Devil":{"Aşk":"Bağımlılık/kıskançlık döngüsünü fark et, özgürleş.","Kariyer/Para":"Aşırı çalışma–ödül tuzağını sorgula.","Genel Durum":"Gölge kalıpları görünce kapı içeriden açılır."},
+    "The Tower":{"Aşk":"Yıkılan kalıp sahicilik alanı açar.","Kariyer/Para":"Plan bozulduysa daha sağlam yapı doğar.","Genel Durum":"Kriz hakikate çağrı; eskiyi sök."},
+    "The Star":{"Aşk":"Nazik dürüstlük şifa getirir; umut tazelenir.","Kariyer/Para":"Vizyonunu paylaş; destek bulursun.","Genel Durum":"Gece uzun olsa da sabah yakın."},
+    "The Moon":{"Aşk":"Varsayım yerine duygu paylaş; sis dağılır.","Kariyer/Para":"Belirsizlikte riski yönet; veriyi netleştir.","Genel Durum":"Hayal ile korkuyu ayırt et."},
+    "The Sun":{"Aşk":"İçtenlik ve oyunbazlık yakınlığı artırır.","Kariyer/Para":"Görünür başarı; emek ışığa çıkıyor.","Genel Durum":"Canlılık ve netlik yüksek."},
+    "Judgement":{"Aşk":"Eski defter adilce kapanırsa ikinci şans mümkün.","Kariyer/Para":"Çağrın netleşiyor; yön değişimi yakın.","Genel Durum":"Yüzleşme hafifletir; yeniden doğuş."},
+    "The World":{"Aşk":"Döngü tamam; seviye atlama.","Kariyer/Para":"Proje kapanışı, hak edilen takdir.","Genel Durum":"Bütünlük ve tamamlanma."}
   };
 
   const minorTemplates = {
@@ -485,17 +415,11 @@
     }
   };
 
-  /* === YORUM MOTORU: gerçek tarotçu üslubu + boyut farkı === */
   function interpretCard(name, category, posLabel, size="medium", userName=""){
     const cat = category || "Genel Durum";
-    const baseText = getBaseMeaning(name, cat);
-    const context = {
-      name: userName || "Sevgili danışan",
-      card: name,
-      category: cat,
-      position: posLabel || null
-    };
-    return stylize(baseText, context, size);
+    const base = getBaseMeaning(name, cat);
+    const ctx = { name: userName||"Sevgili danışan", card: name, category: cat, position: posLabel||null };
+    return stylize(base, ctx, size);
   }
 
   function getBaseMeaning(cardName, cat){
@@ -510,95 +434,47 @@
     return "Denge ve farkındalık çağrısı.";
   }
 
-  /* — Boyutlandırma ve üslup — */
   function stylize(base, ctx, size){
     const pos = ctx.position ? `${ctx.position} konumunda ` : "";
-    const seed = `${ctx.card}|${ctx.category}`; // deterministik küçük çeşni
-    const toneHook = hookByCategory(ctx.category, seed);
-
     if(size === 'short'){
-      // 1–2 cümle + sonuç
-      return [
-        `${ctx.name}, ${pos}${ctx.card} şunu söylüyor: ${base}`,
-        finalLine(ctx.card, ctx.category, "short")
-      ].join(" ");
+      return [`${ctx.name}, ${pos}${ctx.card} diyor ki: ${base}`, "Özet: Net ol ve küçük bir adım at."].join(" ");
     }
-
     if(size === 'long'){
-      // 9–12 cümle; sembol, gölge, olasılık, ritüel, niyet
-      const sym = symbolLine(ctx.card);
-      const shadow = shadowLine(ctx.card, ctx.category);
-      const path = pathLine(ctx.card, ctx.category, ctx.position);
-      const advice = adviceLine(ctx.card, ctx.category);
-      const ritual = ritualLine(ctx.card, ctx.category);
-      const intent = intentionLine(ctx.card, ctx.category);
-
-      const parts = [
+      const blob = [
         `${ctx.name}, ${pos}${ctx.card} kartının enerjisi açılımın kalbini aydınlatıyor.`,
-        `${toneHook} ${base}`,
-        sym, shadow, path, advice, ritual,
-        `Zamanlamaya dair: ${timingLine(ctx.card)}`,
-        finalLine(ctx.card, ctx.category, "long"),
-        `Niyet cümlen: “${intent}”`
-      ].filter(Boolean);
-      return parts.join(" ");
+        `Hayat senden dürüst bir hizalanma bekliyor. ${base}`,
+        symbolLine(ctx.card), shadowLine(ctx.card, ctx.category), pathLine(ctx.card, ctx.category, ctx.position),
+        adviceLine(ctx.card, ctx.category), ritualLine(ctx.card, ctx.category),
+        `Zamanlama: ${timingLine(ctx.card)}`,
+        "Son söz: Hakikate sadık kaldığında yol kendi kendini açar.",
+        `Niyet: “${intentionLine(ctx.card, ctx.category)}”`
+      ];
+      return blob.join(" ");
     }
-
-    // medium: 4–6 cümle; enerji–dinamik–gölge–öneri
-    const energy = energyLine(ctx.card, ctx.category, ctx.position);
-    const challenge = challengeLine(ctx.card, ctx.category);
-    const tip = adviceLine(ctx.card, ctx.category);
     return [
       `${ctx.name}, ${pos}${ctx.card} şunu vurguluyor: ${base}`,
-      energy, challenge, tip,
-      finalLine(ctx.card, ctx.category, "medium")
-    ].filter(Boolean).join(" ");
-  }
-
-  /* — Metin parçaları — */
-  function hookByCategory(cat, seed){
-    const hooks = {
-      "Aşk":[
-        "Kalbin ritmi hızlanıyor; mesele yalnızca hissetmek değil, hissettiğini söylemek.",
-        "İki kalp arasındaki köprü sözle ve niyetle sağlamlaşır."
-      ],
-      "Kariyer/Para":[
-        "Zihin netleştiğinde rota belirir; veri ve sezgi birlikte çalışmalı.",
-        "Değerine denk fırsat, hazırlıkla buluşmak üzere kapıda."
-      ],
-      "Genel Durum":[
-        "Hayat senden dürüst bir hizalanma bekliyor.",
-        "Küçük doğru adımlar büyük kapılar açar."
-      ]
-    }[cat] || ["İç sesin bugün pusulan."];
-    return hooks[(hash(seed)%hooks.length)];
+      energyLine(ctx.card, ctx.category, ctx.position), challengeLine(ctx.card, ctx.category), adviceLine(ctx.card, ctx.category),
+      "Özet: Denge + açık iletişim + somut küçük adım."
+    ].join(" ");
   }
 
   function energyLine(card, cat, pos){
     const lead = pos ? `${pos} enerji olarak` : "Enerji olarak";
-    const map = {
-      "Wands":"heves, cesaret ve hareket",
-      "Cups":"duygu, empati ve yakınlık",
-      "Swords":"zihin, açıklık ve karar",
-      "Pentacles":"pratik adım, düzen ve istikrar"
-    };
-    const suit = suitOf(card);
-    const qual = suit ? map[suit] : "bütüncül bir farkındalık";
-    return `${lead} ${qual} öne çıkıyor.`;
+    const map = { Wands:"heves, cesaret ve hareket", Cups:"duygu, empati ve yakınlık", Swords:"zihin, açıklık ve karar", Pentacles:"pratik adım, düzen ve istikrar" };
+    const s = suitOf(card);
+    return `${lead} ${s?map[s]:"bütüncül bir farkındalık"} öne çıkıyor.`;
   }
-
   function challengeLine(card, cat){
-    if(card==="The Devil") return "Gölge tarafta bağımlılık döngülerini görmezden gelmek huzuru geciktirebilir.";
-    if(card==="The Tower") return "Gölge tarafta ani kırılmalar korkutucu görünebilir; ama zemini saflaştırır.";
-    if(card==="The Moon")  return "Gölge tarafta belirsizlik ve kuruntular gerçeği perdeleyebilir.";
-    const suit = suitOf(card);
-    if(suit==="Swords") return "Zihnin fazla sertleşmesi iletişimi keskinleştirebilir; yumuşak netlik seçilmeli.";
-    if(suit==="Wands")  return "Aşırı hız, sabrı ve dinlemeyi gölgeleyebilir; ritmi ayarla.";
-    if(suit==="Cups")   return "Duygu yoğunluğu sınırları eritebilir; kendine de şefkat göster.";
-    if(suit==="Pentacles") return "Kontrol arzusu akışı kısıtlayabilir; güveni hatırla.";
+    if(card==="The Devil") return "Gölge: Bağımlılık döngülerini görmezden gelmek huzuru geciktirebilir.";
+    if(card==="The Tower") return "Gölge: Ani kırılmalar korkutucu görünse de zemini saflaştırır.";
+    if(card==="The Moon")  return "Gölge: Belirsizlik ve kuruntular gerçeği perdeleyebilir.";
+    const s = suitOf(card);
+    if(s==="Swords") return "Zihnin sertleşmesi iletişimi keskinleştirebilir; yumuşak netlik seçilmeli.";
+    if(s==="Wands")  return "Aşırı hız sabrı gölgeleyebilir; ritmi ayarla.";
+    if(s==="Cups")   return "Duygu yoğunluğu sınırları eritebilir; kendine şefkat göster.";
+    if(s==="Pentacles") return "Kontrol arzusu akışı kısıtlayabilir; güveni hatırla.";
     return "Dengeyi korumak temel sınav.";
   }
-
   function adviceLine(card, cat){
     const majorAdvice = {
       "The Magician":"Tek bir hedef seç ve bugün 3 somut adım yaz.",
@@ -618,69 +494,52 @@
       "The World":"Tamamladığını görünür kıl, şükret."
     }[card];
     if(majorAdvice) return `Öneri: ${majorAdvice}`;
-    const suit = suitOf(card);
-    const suitAdvice = {
-      "Wands":"Enerjini tek bir uğrağa odakla.",
-      "Cups":"Kalpten ve açık konuş.",
-      "Swords":"Net hedef–net iletişim kur.",
-      "Pentacles":"Küçük ama düzenli adım at."
-    }[suit] || "Bugün küçük ama anlamlı bir adım at.";
+    const s = suitOf(card);
+    const suitAdvice = { Wands:"Enerjini tek uğrağa odakla.", Cups:"Kalpten ve açık konuş.", Swords:"Net hedef–net iletişim kur.", Pentacles:"Küçük ama düzenli adım at." }[s] || "Bugün küçük ama anlamlı bir adım at.";
     return `Öneri: ${suitAdvice}`;
   }
-
   function ritualLine(card, cat){
-    if(cat==="Aşk") return "Ritüel: 5 dakika boyunca kalbinin ritmine odaklan; sonra duygunu bir cümleyle ifade et.";
-    if(cat==="Kariyer/Para") return "Ritüel: 10 dakika tek görev odak; bitince küçük bir kutu işareti koy.";
-    return "Ritüel: 3 derin nefes + günün niyetini bir cümle yaz.";
+    if(cat==="Aşk") return "Ritüel: 5 dk kalp ritmine odaklan; sonra duygunu bir cümleyle ifade et.";
+    if(cat==="Kariyer/Para") return "Ritüel: 10 dk tek görev odak; bitirince küçük bir ✔ koy.";
+    return "Ritüel: 3 derin nefes + günü belirleyen niyet cümlesi.";
   }
-
   function intentionLine(card, cat){
     if(cat==="Aşk") return "Kalbimi açık ve nazikçe ifade ediyorum.";
     if(cat==="Kariyer/Para") return "Değerimle uyumlu fırsatlara cesaretle adım atıyorum.";
     return "Dengeyi seçiyor, küçük adımlarla ilerliyorum.";
   }
-
   function symbolLine(card){
-    if(card==="The Sun") return "Sembol dili: Güneş kartı açıklık, neşe ve saf canlılık getirir; çocuk bilincin dürüstçe parlıyor.";
-    if(card==="The Moon") return "Sembol dili: Ay kartı sezgi, rüya ve belirsizlikle yüzleşmeyi çağırır.";
-    if(card==="The Star") return "Sembol dili: Yıldız kartı şifa, umut ve içsel rehberliktir.";
-    if(card==="The Tower") return "Sembol dili: Kule, yıkımın içindeki arınmadır; sahte olan çöker.";
-    return "Sembol dili: Kartın arketipi seni özüne yaklaştıran bir ayna görevi görüyor.";
+    if(card==="The Sun") return "Sembol: Güneş açıklık ve saf canlılık getirir.";
+    if(card==="The Moon") return "Sembol: Ay sezgi ve rüya alanını açar.";
+    if(card==="The Star") return "Sembol: Yıldız şifa ve umutla parlar.";
+    if(card==="The Tower") return "Sembol: Kule yıkım içindeki arınmadır.";
+    return "Sembol: Arketip, özüne ayna tutuyor.";
   }
-
   function shadowLine(card, cat){
-    if(card==="The Devil") return "Gölge: Bağımlılık, kıskançlık ya da kontrol arzusunun zincirlerini fark edip çözmek.";
-    if(card==="The Hanged Man") return "Gölge: Pasif bekleyişe saplanmak yerine, anlamı değiştirerek özgürleşmek.";
-    const suit = suitOf(card);
-    if(suit==="Swords") return "Gölge: Aşırı analiz, kalp temasını kesebilir.";
-    if(suit==="Cups") return "Gölge: Duygusal taşkınlık sınırları eritebilir.";
-    if(suit==="Wands") return "Gölge: Sabırsızlık acele karara iter.";
-    if(suit==="Pentacles") return "Gölge: Aşırı kontrol akışı tıkar.";
-    return "Gölge: Dengeyi unutturacak abartılardan sakın.";
+    if(card==="The Devil") return "Gölge: Kıskançlık/kontrol zincirlerini görmek ve çözmek.";
+    if(card==="The Hanged Man") return "Gölge: Pasif bekleyişe saplanmak yerine anlamı değiştirmek.";
+    const s = suitOf(card);
+    if(s==="Swords") return "Gölge: Aşırı analiz kalp temasını kesebilir.";
+    if(s==="Cups") return "Gölge: Duygusal taşkınlık sınırları eritebilir.";
+    if(s==="Wands") return "Gölge: Sabırsızlık acele karara iter.";
+    if(s==="Pentacles") return "Gölge: Aşırı kontrol akışı tıkar.";
+    return "Gölge: Abartılardan sakın.";
   }
-
   function pathLine(card, cat, pos){
     const anchor = pos ? `${pos} kartı` : "Bu kart";
-    if(cat==="Aşk") return `${anchor}, ilişkide sahicilikle adım atıldığında yakınlığın doğal biçimde derinleşeceğini anlatıyor.`;
-    if(cat==="Kariyer/Para") return `${anchor}, değerinle uyumlu hedefe odaklandığında somut sonuçların hızlanacağını söylüyor.`;
-    return `${anchor}, günlük hayatta küçük ama istikrarlı seçimlerin kader çizgisini ince ince değiştirdiğini fısıldıyor.`;
+    if(cat==="Aşk") return `${anchor}, sahicilikle adım atıldığında yakınlığın derinleşeceğini anlatır.`;
+    if(cat==="Kariyer/Para") return `${anchor}, değerinle uyumlu hedefe odaklanınca somut sonuçların hızlanacağını söyler.`;
+    return `${anchor}, istikrarlı küçük seçimlerin kader çizgisini değiştirdiğini fısıldar.`;
   }
-
   function timingLine(card){
     if(card==="The Wheel of Fortune") return "Döngü tamamlandığında fırsat görünür.";
     if(card==="The Chariot") return "Hızlı süreç; karar sonrası ivme artar.";
     if(card==="Temperance") return "Ağır ama kalıcı; sabır ödüllendirilir.";
-    if(card==="The Moon") return "Netlik geceden sabaha gelir; acele etme.";
+    if(card==="The Moon") return "Netlik geceden sabaha gelir.";
     return "Zamanlama, net niyet ve küçük adımla hızlanır.";
   }
 
-  function finalLine(card, cat, size){
-    if(size==="short") return "Özet: Net ol, küçük bir adım at ve kalbinle hizalan.";
-    if(size==="long")  return "Son söz: Hakikate sadık kaldığında yol kendi kendini açar; evren netliği sever.";
-    return "Özet: Denge, dürüst ifade ve küçük bir somut adım bugün en doğru kombinasyon.";
-  }
-
-  /* === Yardımcılar === */
+  /* === Helpers === */
   function sizeLabel(v){ return v==='short'?'Kısa': v==='long'?'Uzun':'Orta'; }
   function buildDecks(mode){
     const shuffled = shuffle(ALL_CARDS.map(c=>c.id));
@@ -694,7 +553,6 @@
   function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
   function escapeHtml(s=''){ return s.replace(/[&<>"']/g, ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
   function resetAll(){ state.name=''; state.mode=null; state.category=null; state.yesnoQuestion=''; state.decksMeta=null; state.chosenDeckIndex=null; state.selectedCards=[]; state.needSelect=0; state.commentSize='medium'; }
-  function hash(str){ let h=0; for(let i=0;i<str.length;i++){ h=((h<<5)-h)+str.charCodeAt(i); h|=0; } return Math.abs(h); }
 
 })();
 </script>

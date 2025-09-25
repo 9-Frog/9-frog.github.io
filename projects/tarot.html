@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>DENIZIM • Tarot Falı</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- DIŞ CSS (varsa kullanılır) -->
+  <link href="../assets/css/style.css" rel="stylesheet">
+
+  <!-- KRİTİK STİLLER (fallback) -->
+  <style>
+    html,body{background:#f9d5d3;margin:0;padding:0;height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111}
+    /* navbar */
+    .navbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,.45);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.6);box-shadow:0 12px 30px rgba(0,0,0,.08)}
+    .nav-left,.nav-center,.nav-right{display:flex;align-items:center;gap:12px}
+    .nav-center{gap:6px}
+    .brand{font-weight:900;letter-spacing:1px;text-decoration:none;color:#111;font-size:20px;padding:8px 10px;border-radius:12px}
+    .nav-link{position:relative;background:none;border:none;cursor:pointer;color:#2a2a2a;font-weight:700;padding:10px 12px;border-radius:12px;text-decoration:none}
+    .nav-link.active{color:#111}
+    .nav-link.active::after{content:"";position:absolute;left:12px;right:12px;bottom:6px;height:2px;background:linear-gradient(90deg,#d9bf75,#b7902c);border-radius:2px;opacity:.9}
+    .dropdown{position:relative}
+    .dropdown-menu{position:absolute;top:calc(100% + 10px);left:0;min-width:220px;padding:10px;display:none;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.7);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.15);transform:scale(.98) translateY(-4px);opacity:0;transition:opacity .18s,transform .18s}
+    .dropdown.open .dropdown-menu{display:block;opacity:1;transform:scale(1) translateY(0)}
+    .dropdown-item{display:block;padding:10px 12px;border-radius:10px;text-decoration:none;color:#222;font-weight:600}
+    .dropdown-item:hover{background:linear-gradient(90deg,rgba(217,191,117,.25),rgba(183,144,44,.25))}
+    /* container */
+    .container{max-width:1000px;margin:24px auto;padding:20px;background:rgba(255,255,255,.9);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.12)}
+    /* tarot kartları */
+    .section{margin-top:14px}
+    .muted{color:#555;font-size:14px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border:none;border-radius:12px;background:#111;color:#fff;font-weight:700;cursor:pointer}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-top:12px}
+    .card{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid #e9e9e9;background:#eee;box-shadow:0 6px 16px rgba(0,0,0,.1);perspective:1200px}
+    .card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+    .card:hover .card-inner{transform:rotateY(8deg)}
+    .card.flipped .card-inner{transform:rotateY(180deg)}
+    .face,.back{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;background:#fff;display:flex}
+    .face{transform:rotateY(180deg)}
+    .face img,.back img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
+    .sel-badge{position:absolute;bottom:6px;left:6px;background:#111;color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;z-index:3}
+    .final-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-top:12px}
+    .final-card{border:1px solid #eee;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+    .final-card .img{aspect-ratio:2/3;background:#fafafa}
+    .final-card .img img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+    .final-card .cap{padding:8px 10px;font-size:13px;color:#444;text-align:center}
+    .reading{margin-top:16px;padding:16px;background:#fff;border:1px solid #eee;border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+    .reading .item{background:#fdf1f1;border:1px solid #fde1e1;border-radius:12px;padding:12px;margin-top:10px}
+  </style>
+</head>
+<body>
+
+  <!-- ŞİFRE -->
+  <script src="../assets/js/gate.js"></script>
+
+  <!-- NAV -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a class="brand" href="../index.html">DENIZIM</a>
+    </div>
+    <nav class="nav-center">
+      <a class="nav-link" href="../index.html">Home</a>
+      <div class="dropdown" id="dd-projects">
+        <button class="nav-link" aria-haspopup="true" aria-expanded="false">Projects ▾</button>
+        <div class="dropdown-menu" role="menu">
+          <a class="dropdown-item" href="../projects/tarot.html" role="menuitem">Tarot Falı</a>
+        </div>
+      </div>
+    </nav>
+    <div class="nav-right"></div>
+  </header>
+
+  <div class="container">
+    <div id="tarot-app"></div>
+  </div>
+
+  <!-- DROPDOWN JS (sağlam) -->
+  <script>
+  (function(){
+    let openDD=null, closeTimer=null;
+    function open(dd){ if(openDD && openDD!==dd) openDD.classList.remove('open'); dd.classList.add('open'); dd.querySelector('button')?.setAttribute('aria-expanded','true'); openDD=dd; }
+    function close(dd){ const n=dd||openDD; if(!n) return; n.classList.remove('open'); n.querySelector('button')?.setAttribute('aria-expanded','false'); if(openDD===n) openDD=null; }
+    function scheduleClose(dd,ms=180){ clearTimeout(closeTimer); closeTimer=setTimeout(()=>close(dd),ms); }
+    document.addEventListener('click',(e)=>{ const btn=e.target.closest('.dropdown>button'); if(btn){ e.preventDefault(); const dd=btn.parentElement; dd.classList.contains('open')?close(dd):open(dd); return; }}, true);
+    document.addEventListener('click',(e)=>{ if(!e.target.closest('.dropdown')) close(null); });
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') close(null); });
+    document.querySelectorAll('.dropdown').forEach(dd=>{
+      dd.addEventListener('mouseenter',()=>clearTimeout(closeTimer));
+      dd.addEventListener('mouseleave',()=>scheduleClose(dd));
+      const menu=dd.querySelector('.dropdown-menu');
+      if(menu){
+        menu.addEventListener('mouseenter',()=>clearTimeout(closeTimer));
+        menu.addEventListener('mouseleave',()=>scheduleClose(dd));
+      }
+    });
+  })();
+  </script>
+
+  <!-- TAROT APP -->
+  <script>
+  (function(){
+    const CARD_BACK_IMAGE_URL = "https://steve-p.org/cards/pix/RWSa-X-BA.png";
+    const CARD_IMAGES = {
+      "The Fool":"https://steve-p.org/cards/pix/RWSa-T-00.png","The Magician":"https://steve-p.org/cards/pix/RWSa-T-01.png","The High Priestess":"https://steve-p.org/cards/pix/RWSa-T-02.png","The Empress":"https://steve-p.org/cards/pix/RWSa-T-03.png","The Emperor":"https://steve-p.org/cards/pix/RWSa-T-04.png","The Hierophant":"https://steve-p.org/cards/pix/RWSa-T-05.png","The Lovers":"https://steve-p.org/cards/pix/RWSa-T-06.png","The Chariot":"https://steve-p.org/cards/pix/RWSa-T-07.png","Strength":"https://steve-p.org/cards/pix/RWSa-T-08.png","The Hermit":"https://steve-p.org/cards/pix/RWSa-T-09.png","Wheel of Fortune":"https://steve-p.org/cards/pix/RWSa-T-10.png","Justice":"https://steve-p.org/cards/pix/RWSa-T-11.png","The Hanged Man":"https://steve-p.org/cards/pix/RWSa-T-12.png","Death":"https://steve-p.org/cards/pix/RWSa-T-13.png","Temperance":"https://steve-p.org/cards/pix/RWSa-T-14.png","The Devil":"https://steve-p.org/cards/pix/RWSa-T-15.png","The Tower":"https://steve-p.org/cards/pix/RWSa-T-16.png","The Star":"https://steve-p.org/cards/pix/RWSa-T-17.png","The Moon":"https://steve-p.org/cards/pix/RWSa-T-18.png","The Sun":"https://steve-p.org/cards/pix/RWSa-T-19.png","Judgement":"https://steve-p.org/cards/pix/RWSa-T-20.png","The World":"https://steve-p.org/cards/pix/RWSa-T-21.png",
+      "Ace of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-0A.webp","Two of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-02.webp","Three of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-03.webp","Four of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-04.webp","Five of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-05.webp","Six of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-06.webp","Seven of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-07.webp","Eight of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-08.webp","Nine of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-09.webp","Ten of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-10.webp","Page of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-J1.webp","Knight of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-J2.webp","Queen of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-QU.webp","King of Wands":"https://steve-p.org/cards/small/sm_RWSa-W-KI.webp",
+      "Ace of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-0A.webp","Two of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-02.webp","Three of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-03.webp","Four of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-04.webp","Five of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-05.webp","Six of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-06.webp","Seven of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-07.webp","Eight of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-08.webp","Nine of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-09.webp","Ten of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-10.webp","Page of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-J1.webp","Knight of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-J2.webp","Queen of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-QU.webp","King of Cups":"https://steve-p.org/cards/small/sm_RWSa-C-KI.webp",
+      "Ace of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-0A.webp","Two of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-02.webp","Three of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-03.webp","Four of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-04.webp","Five of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-05.webp","Six of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-06.webp","Seven of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-07.webp","Eight of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-08.webp","Nine of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-09.webp","Ten of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-10.webp","Page of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-J1.webp","Knight of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-J2.webp","Queen of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-QU.webp","King of Swords":"https://steve-p.org/cards/small/sm_RWSa-S-KI.webp",
+      "Ace of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-0A.png","Two of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-02.png","Three of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-03.png","Four of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-04.png","Five of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-05.png","Six of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-06.png","Seven of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-07.png","Eight of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-08.png","Nine of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-09.png","Ten of Pentacles":"https://steve-p.org/cards/pix/RWSa-P-10.png","Page of Pentacles":"https://steve-p.org/cards/small/sm_RWSa-P-J1.webp","Knight of Pentacles":"https://steve-p.org/cards/small/sm_RWSa-P-J2.webp","Queen of Pentacles":"https://steve-p.org/cards/small/sm_RWSa-P-QU.webp","King of Pentacles":"https://steve-p.org/cards/small/sm_RWSa-P-KI.webp"
+    };
+
+    const DEFAULT_BACK = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 450'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#f9d5d3'/><stop offset='100%' stop-color='#fbe8e6'/></linearGradient><pattern id='p' width='20' height='20' patternUnits='userSpaceOnUse'><circle cx='10' cy='10' r='2' fill='#f3b6b3' opacity='0.6'/></pattern></defs><rect width='100%' height='100%' fill='url(#g)'/><rect width='100%' height='100%' fill='url(#p)'/></svg>`;
+    const backUrl = () => (CARD_BACK_IMAGE_URL && CARD_BACK_IMAGE_URL.trim()) ? CARD_BACK_IMAGE_URL : DEFAULT_BACK;
+    const faceUrlFor = (name) => (CARD_IMAGES[name] && CARD_IMAGES[name].trim()) ? CARD_IMAGES[name] : backUrl();
+
+    const MAJOR=['The Fool','The Magician','The High Priestess','The Empress','The Emperor','The Hierophant','The Lovers','The Chariot','Strength','The Hermit','Wheel of Fortune','Justice','The Hanged Man','Death','Temperance','The Devil','The Tower','The Star','The Moon','The Sun','Judgement','The World'];
+    const SUITS=['Wands','Cups','Swords','Pentacles'];
+    const RANKS=['Ace','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Page','Knight','Queen','King'];
+    const MINOR=SUITS.flatMap(s=>RANKS.map(r=>`${r} of ${s}`));
+    const ALL_CARDS=[...MAJOR,...MINOR].map((name,idx)=>({id:idx,name}));
+
+    const YESNO={ "The Sun":"yes","The Lovers":"yes","The World":"yes","The Tower":"no","Death":"no","The Devil":"no" };
+    const suitOf=n=>SUITS.find(s=>n.includes(` of ${s}`));
+    const defaultYesNo=n=>suitOf(n)==="Swords"?"no":suitOf(n)==="Cups"?"maybe":"yes";
+
+    const positions={
+      three:['Geçmiş','Şimdi','Gelecek'],
+      five:['Geçmiş','Şimdi','Gizli Etkiler','Engeller/Zorluklar','Gelecek'],
+      cross:['Şimdiki Durum','Engeller/Zorluklar','Bilinçli Farkındalık','Bilinçaltı/Temel','Geçmiş','Gelecek','Sen','Karşı Taraf','Umutlar/Korkular','Sonuç'],
+      relationship:['Senin Duyguların','Onun Duyguları','Senin Düşüncelerin','Onun Düşünceleri','Aranızdaki Bağ','Engeller/Sorunlar','Gelecek Olası Sonuç']
+    };
+
+    const state={name:"",mode:null,category:null,yesnoQuestion:"",decksMeta:null,chosenDeckIndex:null,needSelect:0,selectedCards:[],commentSize:"medium"};
+    const root=document.getElementById('tarot-app'); render();
+
+    function render(){
+      if(state.selectedCards.length===state.needSelect && state.needSelect>0) return renderFinal();
+      root.innerHTML=`
+        <h1>🔮 Online Tarot</h1>
+        <div class="muted">İsmini, açılımı ve <b>yorum boyutunu</b> seç. Tek Kart’ta evet/hayır sorununu yaz.</div>
+      `;
+      const step1=document.createElement('div'); step1.className='section';
+      step1.innerHTML=`
+        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+          <div><label class="muted">İsmin</label><input id="inp-name" type="text" placeholder="İsmini yaz" value="${esc(state.name)}"></div>
+          <div><label class="muted">Açılım Türü</label>
+            <select id="sel-mode">
+              <option value="">Seçiniz…</option>
+              <option value="one" ${state.mode==='one'?'selected':''}>Tek Kart</option>
+              <option value="three" ${state.mode==='three'?'selected':''}>3 Kart</option>
+              <option value="five" ${state.mode==='five'?'selected':''}>5 Kart</option>
+              <option value="cross" ${state.mode==='cross'?'selected':''}>Haç Açılımı</option>
+              <option value="relationship" ${state.mode==='relationship'?'selected':''}>İlişki Açılımı</option>
+            </select>
+          </div>
+          <div><label class="muted">Yorum Boyutu</label>
+            <select id="sel-size">
+              <option value="short" ${state.commentSize==='short'?'selected':''}>Kısa</option>
+              <option value="medium" ${state.commentSize==='medium'?'selected':''}>Orta</option>
+              <option value="long" ${state.commentSize==='long'?'selected':''}>Uzun</option>
+            </select>
+          </div>
+        </div>`;
+      root.appendChild(step1);
+
+      if(state.mode==='one'){
+        const step2=document.createElement('div'); step2.className='section';
+        step2.innerHTML=`<label class="muted">Evet / Hayır Sorun</label><textarea id="inp-yn" placeholder="Örn: Bugünkü görüşmem olumlu geçer mi?">${esc(state.yesnoQuestion)}</textarea>`;
+        root.appendChild(step2);
+      }else if(state.mode){
+        const step2=document.createElement('div'); step2.className='section';
+        step2.innerHTML=`<label class="muted">Kategori</label>
+          <select id="sel-cat">
+            <option value="">Seçiniz…</option>
+            <option value="Aşk" ${state.category==='Aşk'?'selected':''}>Aşk</option>
+            <option value="Kariyer/Para" ${state.category==='Kariyer/Para'?'selected':''}>Kariyer/Para</option>
+            <option value="Genel Durum" ${state.category==='Genel Durum'?'selected':''}>Genel Durum</option>
+          </select>`;
+        root.appendChild(step2);
+      }
+
+      const canBuild = state.name && state.mode && (state.mode==='one' || !!state.category);
+      const step3=document.createElement('div'); step3.className='section';
+      step3.innerHTML=`<button id="btn-decks" class="btn" ${!canBuild?'disabled':''}>Desteleri Oluştur</button>${state.decksMeta?'<span class="muted" style="margin-left:8px;">Hazır</span>':''}`;
+      root.appendChild(step3);
+
+      if(state.decksMeta){
+        if(state.chosenDeckIndex===null){
+          const wr=document.createElement('div'); wr.className='section'; wr.innerHTML=`<div class="decks" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px"></div>`;
+          const el=wr.querySelector('.decks');
+          state.decksMeta.decks.forEach((deck,i)=>{
+            const d=document.createElement('div'); d.className='deck'; d.textContent=`🃏 Deste ${i+1}`; d.style.cssText="background:#fff;border:1px solid #eee;border-radius:14px;padding:18px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.08);cursor:pointer";
+            d.addEventListener('click',()=>{state.chosenDeckIndex=i;state.needSelect=reqCount(state.mode);state.selectedCards=[];render();});
+            el.appendChild(d);
+          });
+          root.appendChild(wr);
+        }else{
+          const deck=state.decksMeta.decks[state.chosenDeckIndex];
+          const wr=document.createElement('div'); wr.className='section';
+          wr.innerHTML=`
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span class="muted">Deste ${state.chosenDeckIndex+1}</span>
+              <span class="muted">Seçilecek: <b>${state.needSelect}</b></span>
+              <div style="flex:1"></div>
+              <button id="btn-change-deck" class="btn" style="background:#555">Desteyi Değiştir</button>
+            </div>
+            <div class="cards" id="cards-grid"></div>`;
+          root.appendChild(wr);
+
+          const grid=wr.querySelector('#cards-grid');
+          deck.forEach(cardId=>{
+            const cd=ALL_CARDS[cardId];
+            const c=document.createElement('div'); c.className='card';
+            const inner=document.createElement('div'); inner.className='card-inner';
+            const back=document.createElement('div'); back.className='back'; const bi=document.createElement('img'); bi.src=backUrl(); back.appendChild(bi);
+            const face=document.createElement('div'); face.className='face'; const fi=document.createElement('img'); fi.src=faceUrlFor(cd.name); fi.alt=cd.name; fi.loading='lazy'; fi.decoding='async'; fi.referrerPolicy='no-referrer'; fi.onerror=()=>{fi.src=backUrl();}; face.appendChild(fi);
+            inner.appendChild(back); inner.appendChild(face); c.appendChild(inner);
+            c.addEventListener('click',()=>{
+              if(c.classList.contains('flipped')) return;
+              if(state.selectedCards.length>=state.needSelect) return;
+              c.classList.add('flipped');
+              c.insertAdjacentHTML('beforeend',`<div class="sel-badge">#${state.selectedCards.length+1}</div>`);
+              state.selectedCards.push({id:cardId,name:cd.name});
+              if(state.selectedCards.length===state.needSelect){ setTimeout(render,350); }
+            });
+            grid.appendChild(c);
+          });
+
+          wr.querySelector('#btn-change-deck').addEventListener('click',()=>{state.chosenDeckIndex=null;state.selectedCards=[];render();});
+        }
+      }
+
+      // wire
+      const nameEl=document.getElementById('inp-name');
+      const modeEl=document.getElementById('sel-mode');
+      const catEl=document.getElementById('sel-cat');
+      const ynEl=document.getElementById('inp-yn');
+      const sizeEl=document.getElementById('sel-size');
+      const decksBtn=document.getElementById('btn-decks');
+
+      nameEl && nameEl.addEventListener('input',e=>state.name=e.target.value.trim());
+      modeEl && modeEl.addEventListener('change',e=>{state.mode=e.target.value||null;state.category=null;state.yesnoQuestion='';state.decksMeta=null;state.chosenDeckIndex=null;state.selectedCards=[];state.needSelect=0;render();});
+      sizeEl && sizeEl.addEventListener('change',e=>state.commentSize=e.target.value||'medium');
+      catEl && catEl.addEventListener('change',e=>{state.category=e.target.value||null;render();});
+      ynEl && ynEl.addEventListener('input',e=>state.yesnoQuestion=e.target.value);
+      decksBtn && decksBtn.addEventListener('click',()=>{ if(!(state.name&&state.mode&&(state.mode==='one'||!!state.category)))return; state.decksMeta=buildDecks(state.mode); state.chosenDeckIndex=null; state.selectedCards=[]; state.needSelect=reqCount(state.mode); render(); });
+    }
+
+    function renderFinal(){
+      const pos=positions[state.mode]||[];
+      const title=state.mode==='one'?'Tek Kart':state.mode==='three'?'3 Kart':state.mode==='five'?'5 Kart':state.mode==='cross'?'Haç Açılımı':'İlişki Açılımı';
+      const header=`<h1>🔮 Online Tarot • ${title}</h1><div class="muted">${esc(state.name)}${state.category?' • Kategori: '+esc(state.category):''} • Yorum: ${state.commentSize==='short'?'Kısa':state.commentSize==='long'?'Uzun':'Orta'}</div>`;
+      const gridCards=state.selectedCards.map((c,i)=>`<div class="final-card"><div class="img"><img src="${faceUrlFor(c.name)}" alt="${esc(c.name)}" onerror="this.src='${backUrl()}'" referrerpolicy="no-referrer"></div><div class="cap"><b>${pos[i]?pos[i]+': ':''}${esc(c.name)}</b></div></div>`).join('');
+      let readingHtml='';
+      if(state.mode==='one'){
+        const c=state.selectedCards[0]; const yn=(YESNO[c.name]||defaultYesNo(c.name)).toUpperCase();
+        readingHtml+=`<div class="item"><div class="meta">Soru: <b>${esc(state.yesnoQuestion||'—')}</b> • Yanıt eğilimi: <b>${yn}</b></div>${interpret(c.name,state.category||'Genel Durum','Tek Kart',state.commentSize,state.name)}</div>`;
+      }else{
+        const posNames=positions[state.mode]||[];
+        state.selectedCards.forEach((c,i)=>{ readingHtml+=`<div class="item"><div class="meta">${posNames[i]||('Kart '+(i+1))}</div><b>${esc(c.name)}</b><div style="margin-top:6px;">${interpret(c.name,state.category||'Genel Durum',posNames[i]||null,state.commentSize,state.name)}</div></div>`; });
+      }
+      root.innerHTML=`${header}<div class="final-grid">${gridCards}</div><div class="reading"><h3>🧿 Yorum</h3>${readingHtml}<div style="margin-top:12px;"><button class="btn" id="btn-again">Yeniden Dene</button></div></div>`;
+      document.getElementById('btn-again').addEventListener('click',()=>{resetAll();render();});
+    }
+
+    /* — Yorum motoru (kısaltılmış; önceki sürümün aynısı) — */
+    const majorMap={"The Fool":{"Aşk":"Kalbin yeni bir maceraya hazır; korkusuz ama saygılı adımlar taze romantizmi çağırır.","Kariyer/Para":"Girişim kıvılcımı; hesaplı risk ve öğrenme hevesi görünürlük getirir.","Genel Durum":"‘Deneyimle’ diyor; iç merakla ilerle, yol yürürken açılır."},"The Magician":{"Aşk":"İfade gücün yüksek; net talep ve açık kalp ilişkide sihir yaratır.","Kariyer/Para":"Kaynak ve beceri sende; tek hedefe odaklan, kapı aralanır.","Genel Durum":"Niyet–söz–eylem hizası kapıları açar."},"The High Priestess":{"Aşk":"Sezgini dinle; acele etmeyerek kazanırsın.","Kariyer/Para":"Veri+sezgi doğru zamanı gösteriyor.","Genel Durum":"Rüyalar/işaretler güçlü; iç ses pusulan."},"The Empress":{"Aşk":"Şefkat ve sıcaklık bağı büyütür.","Kariyer/Para":"Besleyen ritim bereket getirir.","Genel Durum":"Doğayla temas ve yaratım artar."},"The Emperor":{"Aşk":"Sağlıklı sınırlar güven verir.","Kariyer/Para":"Plan–takvim–sorumluluk otoriteyi pekiştirir.","Genel Durum":"Kontrol edebildiğine odaklan."},"The Hierophant":{"Aşk":"Ritüeller bağa derinlik katar.","Kariyer/Para":"Usta–çırak modeli ilerletir.","Genel Durum":"Gelenek ve bilgelik omurgandır."},"The Lovers":{"Aşk":"Kalp uyumu ve seçim; açık konuşma şart.","Kariyer/Para":"Değer uyumlu karar uzun vadede tatmin.","Genel Durum":"Evetlerin/hayırların pusulandır."},"The Chariot":{"Aşk":"Aynı yöne bakmak ivme verir.","Kariyer/Para":"Tek hedefe kilitlen; disiplin sonuç getirir.","Genel Durum":"İrade rotadır."},"Strength":{"Aşk":"Yumuşak cesaret yakınlığı derinleştirir.","Kariyer/Para":"Süreklilik kazanır.","Genel Durum":"Nazik güç gerilimi eritir."},"The Hermit":{"Aşk":"Kısa geri çekiliş berraklık sağlar.","Kariyer/Para":"Stratejik yalnızlık odak kazandırır.","Genel Durum":"İç fenerini izle."},"Wheel of Fortune":{"Aşk":"Zamanlama oyunu; akışa uy.","Kariyer/Para":"Esneklik fırsatı büyütür.","Genel Durum":"Döngüsel akışta şans görünür."},"Justice":{"Aşk":"Eşit emek güveni tazeler.","Kariyer/Para":"Şeffaf sözleşme riski azaltır.","Genel Durum":"Adil karar huzur getirir."},"The Hanged Man":{"Aşk":"Onun penceresinden bakmak sihirlidir.","Kariyer/Para":"Beklemek stratejik olabilir.","Genel Durum":"Teslimiyet yaratıcı boşluk açar."},"Death":{"Aşk":"Eski kalıbı bırak; bağ tazelensin.","Kariyer/Para":"Hizmet etmeyeni kapat.","Genel Durum":"Dönüşüm kaçınılmaz."},"Temperance":{"Aşk":"Orta yol besler.","Kariyer/Para":"Dengeli tempo kalıcıdır.","Genel Durum":"Harmoni mayalanır."},"The Devil":{"Aşk":"Bağımlılık/kıskançlık döngüsünü bırak.","Kariyer/Para":"Ödül tuzağını sorgula.","Genel Durum":"Gölgeyi görünce özgürleşirsin."},"The Tower":{"Aşk":"Yıkılan kalıp sahicilik açar.","Kariyer/Para":"Plan bozulsa da daha sağlamı doğar.","Genel Durum":"Kriz hakikate çağrıdır."},"The Star":{"Aşk":"Nazik dürüstlük şifa getirir.","Kariyer/Para":"Vizyonunu paylaş; destek al.","Genel Durum":"Umut tazelenir."},"The Moon":{"Aşk":"Varsayım yerine duygu paylaş.","Kariyer/Para":"Belirsizlikte veriyi netleştir.","Genel Durum":"Hayal/korkuyu ayırt et."},"The Sun":{"Aşk":"İçtenlik yakınlığı artırır.","Kariyer/Para":"Emek görünür başarıya döner.","Genel Durum":"Canlılık yüksek."},"Judgement":{"Aşk":"Adil kapanış ikinci şansı getirir.","Kariyer/Para":"Çağrın netleşiyor.","Genel Durum":"Yüzleşme hafifletir."},"The World":{"Aşk":"Döngü tamam; seviye atla.","Kariyer/Para":"Proje kapanışı, takdir.","Genel Durum":"Bütünlük ve tamamlanma."}};
+    const minorTemplates={ "Aşk":{Wands:{Ace:"Yeni tutku kıvılcımı.",Two:"Birlikte ufka bakış.",Three:"Uzaklardan sevindirici haber.",Four:"Kutlama ve yuva.",Five:"Küçük sürtüşmelerde şefkat.",Six:"Takdir edilme.",Seven:"Sınırlarını sevgiyle koru.",Eight:"Hızlı mesajlar.",Nine:"Minik bir mola.",Ten:"Yükleri paylaş.",Page:"Flörtöz haberci.",Knight:"Tutkulu girişim.",Queen:"Sıcak çekim.",King:"Kararlı vizyon."},Cups:{Ace:"Kalp kapısı açılıyor.",Two:"Karşılıklı çekim.",Three:"Paylaşılan sevinç.",Four:"Durgunluk, alan aç.",Five:"Kırgınlık şifaya çağrılıyor.",Six:"Tatlı anılar.",Seven:"Hayaller çok; seç.",Eight:"Olgunlaşmak için çekiliş.",Nine:"Dilek kabulü.",Ten:"Duygusal bütünlük.",Page:"Tatlı mesaj.",Knight:"Romantik teklif.",Queen:"Derin empati.",King:"Olgun sevgi."},Swords:{Ace:"Hakikati konuş.",Two:"Kararsız gönül.",Three:"Kalp kırığı şifası.",Four:"Dinlendiren sessizlik.",Five:"Ego savaşından uzak dur.",Six:"Sakin sulara geçiş.",Seven:"Dürüstçe konuş; arın.",Eight:"Kısıttan özgürleş.",Nine:"Gece abartır; sabah konuş.",Ten:"Döngü kapanır.",Page:"Nazik merak.",Knight:"Acele söz kırar.",Queen:"Netlik+şefkat.",King:"Sınır ve dürüstlük."},Pentacles:{Ace:"Somut/istikrarlı teklif.",Two:"Denge oyunu.",Three:"Birlikte inşa.",Four:"Güven inşa et.",Five:"Zor günde omuz omuza.",Six:"Vermek–almak.",Seven:"Sabırla büyür.",Eight:"Özenli emek.",Nine:"Öz değer/zarafet.",Ten:"Uzun vadeli yuva.",Page:"Somut küçük jest.",Knight:"Sadakat–süreklilik.",Queen:"Güvenli liman.",King:"Koruyucu cömertlik."}},
+      "Kariyer/Para":{Wands:{Ace:"Yeni proje kıvılcımı.",Two:"Ufuk/plan.",Three:"Emek dönüşü.",Four:"Başarı kutlaması.",Five:"Rekabet.",Six:"Görünür başarı.",Seven:"Pozisyonunu savun.",Eight:"Hızlı süreç.",Nine:"Dayan; az kaldı.",Ten:"Delege et.",Page:"Pilot fikir.",Knight:"Atak ama dengeli.",Queen:"Vizyoner liderlik.",King:"Stratejik büyüme."},Cups:{Ace:"İşe anlam kat.",Two:"Ortaklık/uyum.",Three:"Takım ruhu.",Four:"Motivasyonu tazele.",Five:"Kayıptan öğren.",Six:"Eski bağlantı.",Seven:"Opsiyonları ele.",Eight:"Anlamı azalan işten uzaklaş.",Nine:"Dilek projesi olur.",Ten:"Uzun vadeli tatmin.",Page:"Nazik teklif.",Knight:"İlişki yönetimi.",Queen:"Empatik liderlik.",King:"Duygusal zeka."},Swords:{Ace:"Net karar.",Two:"Veri topla.",Three:"Zor gerçek.",Four:"Mola/odak.",Five:"Ego savaşından kaçın.",Six:"Sakin faz.",Seven:"Taktik zekâ; etik.",Eight:"Kısıtı yeniden çerçevele.",Nine:"Kaygıya plan yaz.",Ten:"Döngü bitti.",Page:"Analitik merak.",Knight:"Hızlı uygulama.",Queen:"Objektif akıl.",King:"Soğukkanlı lider."},Pentacles:{Ace:"Somut fırsat.",Two:"Nakit/iş dengesi.",Three:"Ustalık+ekip.",Four:"Aşırı tutma akışı boğar.",Five:"Geçici daralma.",Six:"Paylaşım/fon.",Seven:"Yatırım sabır ister.",Eight:"Ustalık eğrisi.",Nine:"Bağımsız başarı.",Ten:"Güvence/kurumsallık.",Page:"Staj/öğrenme.",Knight:"Düzenli çalışma.",Queen:"Kaynak yönetimi.",King:"Uzun vadeli finans aklı."}},
+      "Genel Durum":{Wands:{Ace:"Yeni enerji.",Two:"Yön belirleme.",Three:"Emek geri döner.",Four:"Kutlama.",Five:"Ufak çatışma; esnek ol.",Six:"Zafer.",Seven:"Pozisyonunu koru.",Eight:"Hızlanma.",Nine:"Pes etme.",Ten:"Sadeleştir.",Page:"Merak/öğren.",Knight:"Macera.",Queen:"Karizma.",King:"Vizyonu uygula."},Cups:{Ace:"Kalp tazelenir.",Two:"Uyum.",Three:"Sosyallik.",Four:"Minnet pratiği.",Five:"Kalan kaynağı gör.",Six:"Masumiyet/anı.",Seven:"Seçenek çok.",Eight:"Duygusal detoks.",Nine:"Dilek enerjisi.",Ten:"Bütünlük.",Page:"Nazik haber.",Knight:"Zarafet.",Queen:"Şefkatli sezgi.",King:"Olgun duygu."},Swords:{Ace:"Zihinsel netlik.",Two:"Veri topla.",Three:"Arındırıcı yüzleşme.",Four:"Dinlen/yenilen.",Five:"Gereksiz tartışmadan uzak.",Six:"Sakin sular.",Seven:"Zeki plan; etik.",Eight:"Kısıtı çöz.",Nine:"Eylem planı yaz.",Ten:"Döngü kapanır.",Page:"Araştır.",Knight:"Hızlı karar.",Queen:"Berrak söz.",King:"Kural koy."},Pentacles:{Ace:"Somut başlangıç.",Two:"Denge.",Three:"Birlikte üretim.",Four:"Güvenlik ihtiyacı.",Five:"Geçici sıkışma.",Six:"Paylaşım bereketi.",Seven:"Sabır ve ölçüm.",Eight:"İşçilik.",Nine:"Konfor/özyeter.",Ten:"Kalıcılık.",Page:"Öğrenme fırsatı.",Knight:"Rutin güçtür.",Queen:"Şefkatli düzen.",King:"Uzun vadeli yapı."}}
+    };
+
+    function interpret(name,cat,pos,size,user){ const c=cat||"Genel Durum"; const base=getBase(name,c); const p=pos?`${pos} konumunda `:""; if(size==='short') return `${user||'Sevgili danışan'}, ${p}${name} diyor ki: ${base} Küçük bir adım at.`; if(size==='long') return `${user||'Sevgili danışan'}, ${p}${name} açılımın kalbi. ${base} Gölgede takılma; netlik ve küçük adımlar seni taşır. Ritüel: üç derin nefes + niyet cümlesi. Zamanlama: niyet netleşince hızlanır.`; return `${user||'Sevgili danışan'}, ${p}${name} şunu vurguluyor: ${base} Denge, açık iletişim ve somut küçük adım.`; }
+    function getBase(card,cat){ if(majorMap[card]) return majorMap[card][cat]||majorMap[card]["Genel Durum"]; const m=card.match(/^(Ace|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Page|Knight|Queen|King) of (Wands|Cups|Swords|Pentacles)$/); if(m){ const r=m[1],s=m[2]; return (minorTemplates[cat]&&minorTemplates[cat][s]&&minorTemplates[cat][s][r])?minorTemplates[cat][s][r]:minorTemplates["Genel Durum"][s][r]; } return "Denge ve farkındalık çağrısı."; }
+
+    function buildDecks(mode){ const shuffled=shuffle(ALL_CARDS.map(c=>c.id)); let decksCount=6,size=13; if(mode==='cross'){decksCount=3;size=26} const decks=[]; let i=0; for(let d=0; d<decksCount; d++){ decks.push(shuffled.slice(i,i+size)); i+=size; } return {count:decksCount,size,decks}; }
+    function reqCount(m){ if(m==='one')return 1; if(m==='three')return 3; if(m==='five')return 5; if(m==='cross')return 10; if(m==='relationship')return 7; return 1; }
+    function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+    function esc(s=''){ return s.replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function resetAll(){ state.name=''; state.mode=null; state.category=null; state.yesnoQuestion=''; state.decksMeta=null; state.chosenDeckIndex=null; state.selectedCards=[]; state.needSelect=0; state.commentSize='medium'; }
+  })();
+  </script>
+</body>
+</html>

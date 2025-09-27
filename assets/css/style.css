@@ -1,5 +1,5 @@
 :root{
-  --bg: #f9d5d3;         /* toz pembe */
+  --bg: #f9d5d3;
   --text: #1d1d1f;
   --muted:#5a5a5a;
   --card: rgba(255,255,255,.72);
@@ -34,13 +34,9 @@ a{ color:inherit; text-decoration:none; }
 }
 .brand:hover{ background:#fff; box-shadow: var(--shadow-sm); }
 .navbar .spacer{ flex:1; }
-
-.nav-link{
-  padding:8px 12px; border-radius:10px;
-}
+.nav-link{ padding:8px 12px; border-radius:10px; }
 .nav-link:hover{ background:#fff; box-shadow: var(--shadow-sm); }
 .nav-link.active{ box-shadow: inset 0 -2px 0 #111; border-radius:0; }
-
 .dropdown{ position:relative; }
 .drop-btn{
   border:0; background:none; font:inherit; color:inherit;
@@ -53,9 +49,7 @@ a{ color:inherit; text-decoration:none; }
   padding:10px; display:none;
 }
 .dropdown.open .dropdown-menu{ display:block; }
-.dropdown-menu a{
-  display:block; padding:12px; border-radius:10px;
-}
+.dropdown-menu a{ display:block; padding:12px; border-radius:10px; }
 .dropdown-menu a:hover{ background:#f6f6f6; }
 
 /* HERO */
@@ -87,8 +81,6 @@ a{ color:inherit; text-decoration:none; }
   -webkit-background-clip: text; background-clip:text; color:transparent;
   text-shadow: 0 4px 14px rgba(0,0,0,.10);
 }
-
-/* CTA */
 .cta-btn{
   display:inline-flex; align-items:center; justify-content:center;
   height:52px; padding:0 28px; border-radius:16px;
@@ -100,7 +92,7 @@ a{ color:inherit; text-decoration:none; }
   box-shadow: 0 28px 70px rgba(0,0,0,.34);
 }
 
-/* Page / Panel */
+/* Panel */
 .page-wrap{ max-width:1100px; margin:28px auto; padding:0 16px; }
 .card-panel{
   background: var(--card); border:1px solid var(--card-border); border-radius:18px;
@@ -108,18 +100,44 @@ a{ color:inherit; text-decoration:none; }
 }
 .muted{ color:var(--muted); font-size:14px; }
 
-/* Loader */
-#loader-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  transition: opacity 0.6s ease;
+/* LOADER (başlangıçta gizli) */
+#loader-overlay{
+  position: fixed; inset: 0; background: var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  z-index: 99999; transition: opacity .6s ease;
 }
-#loader-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
+#loader-overlay.hidden{ opacity:0; pointer-events:none; }
+
+/* GATE — Loader’ın ÜSTÜNDE */
+.gate-overlay{
+  position: fixed; inset: 0;
+  display:flex; align-items:center; justify-content:center;
+  background: var(--bg);
+  z-index: 100000; /* loader’dan yüksek */
+}
+.gate-overlay.is-closed{ display:none; }
+.gate-card{
+  width:min(94vw, 380px);
+  padding: 28px 24px;
+  border-radius: 18px;
+  border:1px solid rgba(255,255,255,.65);
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-lg);
+  text-align:center;
+}
+.gate-title{ font-size:22px; font-weight:900; margin-bottom:8px; }
+.gate-card input{
+  width:100%; padding: 12px 14px; font-size:16px;
+  border-radius:14px; border:1px solid #ddd; background:#fff; outline:none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+}
+.gate-card input:focus{ border-color:#111; }
+.gate-card .btn{ width:100%; margin-top:10px; }
+.gate-card.shake{ animation: shakeX .42s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shakeX{
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
 }

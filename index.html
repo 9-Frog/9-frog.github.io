@@ -9,9 +9,22 @@
   <script src="assets/js/ui.js" defer></script>
 </head>
 <body>
-  <!-- LOADER -->
-  <div id="loader-overlay">
+  <!-- LOADER (başlangıçta gizli) -->
+  <div id="loader-overlay" class="hidden">
     <canvas id="dotlottie-canvas" width="600" height="600"></canvas>
+  </div>
+
+  <!-- GATE (Şifre Kapısı) -->
+  <div id="gate-overlay" class="gate-overlay" aria-hidden="false">
+    <div class="gate-card">
+      <div class="gate-title">Giriş</div>
+      <p class="muted">Devam etmek için şifreyi gir:</p>
+      <form id="gate-form" autocomplete="off">
+        <input id="gate-input" type="password" inputmode="numeric" placeholder="Şifre" />
+        <button type="submit" class="btn" style="width:100%;margin-top:8px;">Giriş Yap</button>
+        <div id="gate-hint" class="muted" style="margin-top:6px"></div>
+      </form>
+    </div>
   </div>
 
   <!-- NAVBAR -->
@@ -36,21 +49,14 @@
     </section>
   </main>
 
-  <!-- LOTTIE LOADER SCRIPT -->
+  <!-- Lottie player sadece hazırda dursun; görünürlük gate.js kontrolünde -->
   <script type="module">
     import { DotLottie } from "https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-web/+esm";
-
     new DotLottie({
       autoplay: true,
       loop: true,
       canvas: document.getElementById("dotlottie-canvas"),
       src: "https://lottie.host/5bff608f-bb24-4f26-9d58-c91f25c2ab23/KfmHyRGjkq.lottie"
-    });
-
-    window.addEventListener("load", () => {
-      setTimeout(() => {
-        document.getElementById("loader-overlay").classList.add("hidden");
-      }, 2000); // 2 saniye
     });
   </script>
 </body>

@@ -8,8 +8,14 @@
   <link href="../assets/css/tarot.css" rel="stylesheet">
   <script src="../assets/js/gate.js" defer></script>
   <script src="../assets/js/ui.js" defer></script>
+  <script src="../assets/js/tarot.js" defer></script>
 </head>
 <body>
+  <!-- LOADER -->
+  <div id="loader-overlay">
+    <canvas id="dotlottie-canvas" width="600" height="600"></canvas>
+  </div>
+
   <!-- NAVBAR -->
   <nav class="navbar">
     <a class="brand" href="../index.html">DENIZIM</a>
@@ -28,6 +34,22 @@
     <div id="tarot-app" class="card-panel"></div>
   </div>
 
-  <script src="../assets/js/tarot.js"></script>
+  <!-- LOTTIE LOADER SCRIPT -->
+  <script type="module">
+    import { DotLottie } from "https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-web/+esm";
+
+    new DotLottie({
+      autoplay: true,
+      loop: true,
+      canvas: document.getElementById("dotlottie-canvas"),
+      src: "https://lottie.host/5bff608f-bb24-4f26-9d58-c91f25c2ab23/KfmHyRGjkq.lottie"
+    });
+
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        document.getElementById("loader-overlay").classList.add("hidden");
+      }, 2000); // 2 saniye
+    });
+  </script>
 </body>
 </html>

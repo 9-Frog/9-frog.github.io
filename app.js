@@ -1,0 +1,22 @@
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const config = window.VISORA_CONFIG || {};
+$('#year').textContent = new Date().getFullYear();
+const menuButton = $('.menu-toggle');
+menuButton.addEventListener('click', () => { const open = $('#main-nav').classList.toggle('open'); menuButton.setAttribute('aria-expanded', String(open)); menuButton.setAttribute('aria-label', open ? 'Close menu' : 'Open menu'); });
+function closeMenu(){ $('#main-nav').classList.remove('open'); menuButton.setAttribute('aria-expanded','false'); menuButton.setAttribute('aria-label','Open menu'); }
+$$('#main-nav a').forEach(a => a.addEventListener('click',closeMenu));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
+const header = $('.site-header');
+addEventListener('scroll',()=>header.classList.toggle('scrolled',scrollY>35),{passive:true});
+$('.hero-art').innerHTML='<img src="assets/hero.png" alt="" width="1536" height="1024" fetchpriority="high">';
+if(!reduceMotion){document.body.classList.add('js-motion');const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:0.07});$$('.reveal').forEach(el=>observer.observe(el));}
+const navObserver=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){$$('#main-nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+entry.target.id));}})},{rootMargin:'-20% 0px -60% 0px'});$$('main section[id]').forEach(section=>navObserver.observe(section));
+let toastTimer;function showToast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4500);}
+const dialog=$('#info-dialog');function openDialog(html){$('#dialog-content').innerHTML=html;dialog.showModal();}
+$('.dialog-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
+$('#privacy-button').addEventListener('click',()=>openDialog(`<div class="dialog-body"><p class="dialog-label">VISORA / PRIVACY</p><h2 id="dialog-title" class="dialog-heading">A little clarity about your data.</h2><h3>Your project brief</h3><p>The brief is prepared in your browser. This website does not save the details you type into the form. When you continue, your brief is passed to WhatsApp so you can review and send it yourself.</p><h3>Third-party services</h3><p>WhatsApp is a separate service with its own privacy practices. The hosting provider may process standard connection logs needed to serve this website. Fonts are loaded from Google Fonts, which receives the connection information needed to deliver them.</p><h3>Cookies and analytics</h3><p>This site does not add analytics or advertising cookies. The site host may use essential authentication cookies if you are viewing a private preview.</p><h3>Contact</h3><p>For questions about an enquiry you have shared with VISORA, contact us on WhatsApp at +44 7417 454918.</p></div>`));
+$$('.faq-list details').forEach(item=>item.addEventListener('toggle',()=>{if(item.open)$$('.faq-list details').forEach(other=>{if(other!==item)other.open=false})}));
+$('#project-form').addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget;const data=new FormData(form);const name=String(data.get('name')||'').trim(),business=String(data.get('business')||'').trim(),message=String(data.get('message')||'').trim();if(!name||!message){showToast('Please add your name and a little about your idea.');return;}const body=`Hello VISORA!\n\nI'm ${name}${business?' from '+business:''}.\nI'm interested in: ${data.get('interest')}.\n\n${message}\n\nI'd like to discuss a free website build and a monthly hosting, maintenance and domain plan.`;const url=`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(body)}`;const fallback=$('#whatsapp-fallback');fallback.href=url;fallback.hidden=false;window.open(url,'_blank','noopener,noreferrer');showToast('Your brief is ready in WhatsApp. Review it before sending.');});
+if(config.monthlyPrice){$('#monthly-price').textContent=config.monthlyPrice;}
